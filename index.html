@@ -2,11 +2,12 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>万圣节暖语词云 👻</title>
+  <!-- 关键：禁止缩放 + 全屏 + 刘海适配 -->
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
+  <title>万圣节暖语词云</title>
   <style>
     :root {
-      --bg: #1e1e2f;
+      --bg: #000;
       --primary: #ff7a00;
       --text: #fff;
     }
@@ -15,20 +16,20 @@
       margin: 0;
       padding: 0;
     }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    html, body {
+      height: 100%;
       overflow: hidden;
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
     }
-    /* 开场弹窗 */
+    /* 开场弹窗居中 */
     .modal-backdrop {
       position: fixed;
-      inset: 0;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
       background: rgba(0, 0, 0, .6);
       display: flex;
       align-items: center;
@@ -38,41 +39,25 @@
     .modal {
       background: #2c2c3a;
       border-radius: 16px;
-      width: min(320px, 90vw);
+      width: 280px;
       padding: 24px;
       text-align: center;
       box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
     }
-    .titlebar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      font-size: 22px;
-      font-weight: 800;
-      margin-bottom: 16px;
-    }
-    .content {
-      font-size: 16px;
-      margin-bottom: 24px;
-    }
     .btn {
+      margin-top: 16px;
       border: none;
       padding: 10px 32px;
       border-radius: 8px;
       font-size: 16px;
       cursor: pointer;
-      transition: .25s;
       background: var(--primary);
       color: #fff;
-    }
-    .btn:hover {
-      background: #ff973c;
     }
     /* 暖语粒子 */
     .particle {
       position: fixed;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
       color: #fff;
       text-shadow: 0 0 3px #000;
@@ -90,7 +75,7 @@
         opacity: 1;
       }
     }
-    /* 隐藏 canvas，只用它做遮罩计算 */
+    /* 隐藏计算用画布 */
     #maskCanvas {
       display: none;
     }
@@ -101,18 +86,16 @@
   <!-- 开场 -->
   <div class="modal-backdrop" id="start-backdrop">
     <div class="modal">
-      <div class="titlebar"><span>🎃</span><span>万圣节礼物</span></div>
-      <div class="content">您有一份万圣节礼物，确定要打开吗？</div>
-      <div class="actions"><button class="btn" id="confirm-btn">确定</button></div>
+      <div>🎃 万圣节礼物</div>
+      <div style="margin:12px 0;">您有一份万圣节礼物，确定要打开吗？</div>
+      <button class="btn" id="confirm-btn">确定</button>
     </div>
   </div>
 
-  <!-- 背景音乐 -->
-  <audio id="bgMusic" preload loop>
-    <source src="https://sf5-hl-cdn-tos.douyinstatic.com/obj/ies-music/7499771397531503370.mp3" type="audio/mpeg">
-  </audio>
+  <!-- 音乐 -->
+  <audio id="bgMusic" preload loop playsinline></audio>
 
-  <!-- 遮罩 canvas -->
+  <!-- 计算遮罩 -->
   <canvas id="maskCanvas"></canvas>
 
   <script>
@@ -159,10 +142,9 @@
         '你努力的样子最美 🌺','所有等待都值得 ⏳','你配得上最好的一切 🎁',
         '今天风很温柔 🍃','你笑起来世界亮了 🌞','愿你永远热泪盈眶 ✨'
       ],
-      ghostImg: 'ghost.png',   // ← 放同目录的透明底鬼形 PNG
-      totalParticles: 200,     // 最终粒子数
-      spawnInterval: 80,       // 每句间隔（ms）
-      finalWait: 3000          // 完成后停留时长
+      totalParticles: 180,
+      spawnInterval: 60,
+      finalWait: 3000
     };
 
     /* ====== 工具 ====== */
@@ -172,85 +154,6 @@
     const backdrop = document.getElementById('start-backdrop');
     const music = document.getElementById('bgMusic');
 
-    /* ====== 主流程 ====== */
-    let ghostData = []; // 保存鬼形非透明像素坐标
-
-    // 1. 加载鬼形遮罩
-    function loadGhostMask() {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = CONFIG.ghostImg;
-      img.onload = () => {
-        const canvas = document.getElementById('maskCanvas');
-        const ctx = canvas.getContext('2d');
-        const size = 200; // 统一尺寸
-        canvas.width = canvas.height = size;
-        ctx.drawImage(img, 0, 0, size, size);
-        const imgData = ctx.getImageData(0, 0, size, size).data;
-        ghostData = []; // 重置
-        for (let i = 0; i < imgData.length; i += 4) {
-          const a = imgData[i + 3]; // alpha
-          if (a > 128) { // 非透明
-            const x = (i / 4) % size;
-            const y = Math.floor(i / 4 / size);
-            ghostData.push([x, y]);
-          }
-        }
-        if (ghostData.length === 0) ghostData = Array.from({ length: size * size }, (_, i) => [i % size, Math.floor(i / size)]); // 兜底
-      };
-      img.onerror = () => {
-        alert('鬼形图片加载失败，请确认 ghost.png 存在');
-        // 兜底用方形
-        const size = 200;
-        ghostData = Array.from({ length: size * size }, (_, i) => [i % size, Math.floor(i / size)]);
-      };
-    }
-
-    // 2. 点击开始
-    document.getElementById('confirm-btn').addEventListener('click', () => {
-      backdrop.style.display = 'none';
-      music.play();
-      spawnParticles();
-    });
-
-    // 3. 生成粒子
-    function spawnParticles() {
-      let count = 0;
-      const timer = setInterval(() => {
-        createParticle();
-        if (++count >= CONFIG.totalParticles) {
-          clearInterval(timer);
-          setTimeout(fadeAll, CONFIG.finalWait);
-        }
-      }, CONFIG.spawnInterval);
-    }
-
-    function createParticle() {
-      const p = document.createElement('div');
-      p.className = 'particle';
-      p.textContent = CONFIG.tips[rand(CONFIG.tips.length - 1)];
-      // 随机取一个鬼形像素点
-      const [px, py] = ghostData[rand(ghostData.length - 1)];
-      const x = (px / 200) * 100; // 200 是 canvas 尺寸
-      const y = (py / 200) * 100;
-      p.style.left = x + 'vw';
-      p.style.top = y + 'vh';
-      document.body.appendChild(p);
-    }
-
-    // 4. 淡出
-    function fadeAll() {
-      document.querySelectorAll('.particle').forEach(el => {
-        el.style.transition = 'opacity .8s';
-        el.style.opacity = '0';
-      });
-      setTimeout(() => {
-        document.querySelectorAll('.particle').forEach(el => el.remove());
-      }, 800);
-    }
-
-    /* ====== 初始化 ====== */
-    loadGhostMask();
-  </script>
-</body>
-</html>
+    /* ====== 鬼形遮罩（200×200 透明 PNG → Base64） ====== */
+    // 已内置，无需文件；想换图案改这里即可
+    const ghostBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAYAAACtWK6eAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAADh0RVh0U29mdHdhcmUAbWF0cGxvdGxpYiB2ZXJzaW9uMy4xLjEsIGh0dHA6Ly9tYXRwbG90bGliLm9yZy8QZhcZAAAGaElEQVR4nO3dQW7jRhBA0RqYRQ6QE+UkOVFOkhPlBFlkFgYMGDDgLtpuUqL4XgMsLFn6H2hApETVvLy8vLwAb/rr0w8APi2BQCIQSAQCiUAgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAK
