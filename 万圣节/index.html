@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>万圣节暖语词云 👻</title>
+  <style>
+    :root {
+      --bg: #1e1e2f;
+      --primary: #ff7a00;
+      --text: #fff;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    /* 开场弹窗 */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+    .modal {
+      background: #2c2c3a;
+      border-radius: 16px;
+      width: min(320px, 90vw);
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+    }
+    .titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+    .content {
+      font-size: 16px;
+      margin-bottom: 24px;
+    }
+    .btn {
+      border: none;
+      padding: 10px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: .25s;
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn:hover {
+      background: #ff973c;
+    }
+    /* 暖语粒子 */
+    .particle {
+      position: fixed;
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      text-shadow: 0 0 3px #000;
+      pointer-events: none;
+      opacity: 0;
+      animation: fadeInScale .5s forwards;
+    }
+    @keyframes fadeInScale {
+      0% {
+        transform: translate(-50%, -50%) scale(.5);
+        opacity: 0;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+    }
+    /* 隐藏 canvas，只用它做遮罩计算 */
+    #maskCanvas {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- 开场 -->
+  <div class="modal-backdrop" id="start-backdrop">
+    <div class="modal">
+      <div class="titlebar"><span>🎃</span><span>万圣节礼物</span></div>
+      <div class="content">您有一份万圣节礼物，确定要打开吗？</div>
+      <div class="actions"><button class="btn" id="confirm-btn">确定</button></div>
+    </div>
+  </div>
+
+  <!-- 背景音乐 -->
+  <audio id="bgMusic" preload loop>
+    <source src="https://sf5-hl-cdn-tos.douyinstatic.com/obj/ies-music/7499771397531503370.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- 遮罩 canvas -->
+  <canvas id="maskCanvas"></canvas>
+
+  <script>
+    /* ====== 配置 ====== */
+    const CONFIG = {
+      tips: [
+        '保持好心情 😊','多喝水哦~ 💧','今天过得开心嘛 🌈','别熬夜 🌙',
+        '保持微笑 😊','期待下一次见面 🤝','梦想成真 ✨','早点休息 😴',
+        '好好爱自己 ❤️','每天幸福满满 🌻',
+        '阳光很暖，你也是 🌞','风很甜，因为你在笑 🍃','你值得被温柔以待 🌸',
+        '慢慢来，会更快 🐢','所有美好都如期而至 🕊️','今晚星星为你点灯 ✨',
+        '把烦恼调成静音 🔇','世界很大，开心第一 🌍','你比昨天更棒 👍','心有光芒，必有远方 🌟',
+        '今天也要加油鸭 🦆','小确幸在排队等你 🍬','愿你睡个好觉 🌙','风会带走你的疲惫 🍃',
+        '你笑起来真好看 😄','把难过关在门外 🚪','做自己的太阳 🌞','一切都会好起来 💪',
+        '你拥有改变世界的力量 🌍','别急着否定自己 🌱','温柔是宝藏，你也是 💎',
+        '保持热爱，奔赴山海 🌊','所有等待都有意义 ⏳','你配得上最好的一切 🏆',
+        '今天风很温柔 🍃','你逆光而来，配得上所有美好 🌅','把日子过成诗 📜',
+        '愿你被很多人偏爱 💌','喜欢自己比喜欢世界更重要 ❤️','你努力的样子真好看 🌺',
+        '别忘了抬头看看月亮 🌕','你永远不会孤单 🌈','快乐正在加载中 ⏳',
+        '给生活比个耶 ✌️','你值得一个拥抱 🤗','所有温柔都给你 🌸',
+        '愿你三冬暖 🧣','愿你春不寒 🌸','愿你天黑有灯，下雨有伞 ☔',
+        '你比星光更璀璨 🌟','把不快留在昨天 📅','你正在发光 ✨',
+        '世界因你更美丽 🌏','保持少年感 🏃','你配得上所有掌声 👏',
+        '愿你所遇皆良善 🕊️','你笑起来世界都亮了 🌞','今天也要开心呀 😊',
+        '你拥有最好的未来 🚀','所有等待都值得 ⏳','你比想象中更强大 💪',
+        '把平凡的日子过成诗 📖','你是自己的小太阳 🌞','愿你永远热泪盈眶 ✨',
+        '风会替你拥抱我 🍃','你值得被世界温柔以待 🌎','快乐正在路上 🚚',
+        '你逆光而来，配得上所有好 🌅','愿你一生清澈明朗 🌊','你努力的样子最美 🌺',
+        '所有美好不期而遇 🌈','你永远不会独行 👣','把烦恼丢进海里 🌊',
+        '你比昨天更勇敢 🦁','愿你睡个好觉 🌙','你值得所有掌声 👏',
+        '今天也要元气满满 ⚡','你拥有治愈世界的力量 💊','愿你所愿终能实现 🎐',
+        '你笑起来真好看 😄','你配得上所有美好 🏆','把难过关在昨天 🚪',
+        '你正在悄悄发光 ✨','愿你被温柔以待 🌸','你比星光更耀眼 🌟',
+        '所有等待都有意义 ⏳','你值得被偏爱 💌','愿你三冬暖，春不寒 🌸',
+        '你永远不会孤单 🌈','快乐正在加载 ⏳','你逆光而来，自带光芒 🌅',
+        '你拥有最好的未来 🚀','把日子过成诗 📜','你比想象中更强大 💪',
+        '愿你一生清澈明朗 🌊','你努力的样子真好看 🌺','所有美好如期而至 🕊️',
+        '你配得上所有掌声 👏','风很甜，因为你在笑 🍃','你值得被世界温柔以待 🌍',
+        '今天也要加油呀 🦆','你比昨天更棒 👍','保持热爱，奔赴山海 🌊',
+        '你永远不会独行 👣','把不快留在昨天 📅','你正在发光发亮 ✨',
+        '愿你睡个好觉 🌙','你拥有治愈世界的力量 💊','所有温柔都给你 🌸',
+        '你值得所有美好 🏆','快乐正在路上 🚚','你逆光而来，配得上所有 🌅',
+        '愿你被很多人偏爱 💌','你比星光更璀璨 🌟','把平凡过成诗 📖',
+        '你努力的样子最美 🌺','所有等待都值得 ⏳','你配得上最好的一切 🎁',
+        '今天风很温柔 🍃','你笑起来世界亮了 🌞','愿你永远热泪盈眶 ✨'
+      ],
+      ghostImg: 'ghost.png',   // ← 放同目录的透明底鬼形 PNG
+      totalParticles: 200,     // 最终粒子数
+      spawnInterval: 80,       // 每句间隔（ms）
+      finalWait: 3000          // 完成后停留时长
+    };
+
+    /* ====== 工具 ====== */
+    const rand = (max, min = 0) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+    /* ====== DOM ====== */
+    const backdrop = document.getElementById('start-backdrop');
+    const music = document.getElementById('bgMusic');
+
+    /* ====== 主流程 ====== */
+    let ghostData = []; // 保存鬼形非透明像素坐标
+
+    // 1. 加载鬼形遮罩
+    function loadGhostMask() {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = CONFIG.ghostImg;
+      img.onload = () => {
+        const canvas = document.getElementById('maskCanvas');
+        const ctx = canvas.getContext('2d');
+        const size = 200; // 统一尺寸
+        canvas.width = canvas.height = size;
+        ctx.drawImage(img, 0, 0, size, size);
+        const imgData = ctx.getImageData(0, 0, size, size).data;
+        ghostData = []; // 重置
+        for (let i = 0; i < imgData.length; i += 4) {
+          const a = imgData[i + 3]; // alpha
+          if (a > 128) { // 非透明
+            const x = (i / 4) % size;
+            const y = Math.floor(i / 4 / size);
+            ghostData.push([x, y]);
+          }
+        }
+        if (ghostData.length === 0) ghostData = Array.from({ length: size * size }, (_, i) => [i % size, Math.floor(i / size)]); // 兜底
+      };
+      img.onerror = () => {
+        alert('鬼形图片加载失败，请确认 ghost.png 存在');
+        // 兜底用方形
+        const size = 200;
+        ghostData = Array.from({ length: size * size }, (_, i) => [i % size, Math.floor(i / size)]);
+      };
+    }
+
+    // 2. 点击开始
+    document.getElementById('confirm-btn').addEventListener('click', () => {
+      backdrop.style.display = 'none';
+      music.play();
+      spawnParticles();
+    });
+
+    // 3. 生成粒子
+    function spawnParticles() {
+      let count = 0;
+      const timer = setInterval(() => {
+        createParticle();
+        if (++count >= CONFIG.totalParticles) {
+          clearInterval(timer);
+          setTimeout(fadeAll, CONFIG.finalWait);
+        }
+      }, CONFIG.spawnInterval);
+    }
+
+    function createParticle() {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.textContent = CONFIG.tips[rand(CONFIG.tips.length - 1)];
+      // 随机取一个鬼形像素点
+      const [px, py] = ghostData[rand(ghostData.length - 1)];
+      const x = (px / 200) * 100; // 200 是 canvas 尺寸
+      const y = (py / 200) * 100;
+      p.style.left = x + 'vw';
+      p.style.top = y + 'vh';
+      document.body.appendChild(p);
+    }
+
+    // 4. 淡出
+    function fadeAll() {
+      document.querySelectorAll('.particle').forEach(el => {
+        el.style.transition = 'opacity .8s';
+        el.style.opacity = '0';
+      });
+      setTimeout(() => {
+        document.querySelectorAll('.particle').forEach(el => el.remove());
+      }, 800);
+    }
+
+    /* ====== 初始化 ====== */
+    loadGhostMask();
+  </script>
+</body>
+</html>
