@@ -142,6 +142,7 @@
         '你努力的样子最美 🌺','所有等待都值得 ⏳','你配得上最好的一切 🎁',
         '今天风很温柔 🍃','你笑起来世界亮了 🌞','愿你永远热泪盈眶 ✨'
       ],
+      ghostImg: 'ghost.png', // ← 只留文件名，同目录即可
       totalParticles: 180,
       spawnInterval: 60,
       finalWait: 3000
@@ -154,6 +155,81 @@
     const backdrop = document.getElementById('start-backdrop');
     const music = document.getElementById('bgMusic');
 
-    /* ====== 鬼形遮罩（200×200 透明 PNG → Base64） ====== */
-    // 已内置，无需文件；想换图案改这里即可
-    const ghostBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAYAAACtWK6eAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAADh0RVh0U29mdHdhcmUAbWF0cGxvdGxpYiB2ZXJzaW9uMy4xLjEsIGh0dHA6Ly9tYXRwbG90bGliLm9yZy8QZhcZAAAGaElEQVR4nO3dQW7jRhBA0RqYRQ6QE+UkOVFOkhPlBFlkFgYMGDDgLtpuUqL4XgMsLFn6H2hApETVvLy8vLwAb/rr0w8APi2BQCIQSAQCiUAgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAKJQCARCCQCgUQgkAgEEoFAIhBIBAK
+    /* ====== 主流程 ====== */
+    let ghostData = [];
+
+    // 1. 加载鬼形遮罩（图片文件同目录）
+    function loadGhostMask() {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = CONFIG.ghostImg;
+      img.onload = () => {
+        const canvas = document.getElementById('maskCanvas');
+        const ctx = canvas.getContext('2d');
+        const size = 200;
+        canvas.width = canvas.height = size;
+        ctx.drawImage(img, 0, 0, size, size);
+        const imgData = ctx.getImageData(0, 0, size, size).data;
+        ghostData = [];
+        for (let i = 0; i < imgData.length; i += 4) {
+          if (imgData[i + 3] > 128) { // 非透明
+            ghostData.push([(i / 4) % size, Math.floor(i / 4 / size)]);
+          }
+        }
+        if (!ghostData.length) ghostData = [[100, 100]]; // 兜底
+      };
+      img.onerror = () => {
+        alert('ghost.png 加载失败，请确认文件存在');
+        ghostData = [[100, 100]]; // 兜底单点
+      };
+    }
+
+    // 2. 点击开始
+    document.getElementById('confirm-btn').addEventListener('click', () => {
+      backdrop.style.display = 'none';
+      // iOS 必须用户交互后播放
+      music.play().catch(() => {});
+      spawnParticles();
+    });
+
+    // 3. 生成粒子
+    function spawnParticles() {
+      let count = 0;
+      const timer = setInterval(() => {
+        createParticle();
+        if (++count >= CONFIG.totalParticles) {
+          clearInterval(timer);
+          setTimeout(fadeAll, CONFIG.finalWait);
+        }
+      }, CONFIG.spawnInterval);
+    }
+
+    function createParticle() {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.textContent = CONFIG.tips[rand(CONFIG.tips.length - 1)];
+      // 随机取一个鬼形像素点
+      const [px, py] = ghostData[rand(ghostData.length - 1)];
+      const x = (px / 200) * 100;
+      const y = (py / 200) * 100;
+      p.style.left = x + 'vw';
+      p.style.top = y + 'vh';
+      document.body.appendChild(p);
+    }
+
+    // 4. 集体淡出
+    function fadeAll() {
+      document.querySelectorAll('.particle').forEach(el => {
+        el.style.transition = 'opacity .8s';
+        el.style.opacity = '0';
+      });
+      setTimeout(() => {
+        document.querySelectorAll('.particle').forEach(el => el.remove());
+      }, 800);
+    }
+
+    /* ====== 初始化 ====== */
+    loadGhostMask();
+  </script>
+</body>
+</html>
